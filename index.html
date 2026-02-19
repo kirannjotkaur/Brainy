@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brainy 🧠</title>
+
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#00f0ff" />
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#070b1a;
+  --card:#0f1633;
+  --neon:#00f0ff;
+  --pink:#ff5edf;
+  --text:#e9f1ff;
+  --muted:#9fb3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Poppins,sans-serif;}
+body{background:radial-gradient(circle at top, #0b1025, #040713); color:var(--text); min-height:100vh; padding:20px;}
+h1{font-size:28px; text-align:center; margin-bottom:10px;}
+.sub{color:var(--muted); text-align:center; margin-bottom:20px;}
+
+.app{max-width:900px;margin:auto;}
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border:1px solid rgba(0,240,255,0.25);
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 0 30px rgba(0,240,255,.08);
+  animation:pop .5s ease;
+}
+@keyframes pop{from{transform:scale(.96);opacity:.7}to{transform:scale(1);opacity:1}}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;}
+.btn{
+  padding:12px 14px; border-radius:12px; border:1px solid rgba(0,240,255,.5);
+  background:linear-gradient(135deg, rgba(0,240,255,.15), rgba(255,94,223,.15));
+  color:#eaffff; font-weight:600; cursor:pointer;
+  transition:.2s; text-align:center;
+}
+.btn:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,240,255,.2)}
+.btn.secondary{border-color:rgba(255,94,223,.6)}
+.btn.small{padding:8px 10px; font-size:13px}
+
+.row{display:flex; gap:10px; flex-wrap:wrap}
+.space{height:8px}
+
+.question{font-size:18px; margin-bottom:10px}
+.options{display:grid; gap:10px}
+.option{
+  padding:12px; border-radius:12px; border:1px solid rgba(159,179,255,.25);
+  background:rgba(255,255,255,.04); cursor:pointer; transition:.2s;
+}
+.option:hover{border-color:var(--neon)}
+.option.correct{border-color:#00ff8a; background:rgba(0,255,138,.12)}
+.option.wrong{border-color:#ff5e5e; background:rgba(255,94,94,.12)}
+
+.topbar{display:flex; justify-content:space-between; align-items:center; gap:10px}
+.badge{padding:6px 10px; border-radius:999px; border:1px solid rgba(0,240,255,.5); color:#bff9ff}
+.timer{color:#ffdd57}
+
+.leaderboard li{
+  list-style:none; display:flex; justify-content:space-between; padding:10px 12px;
+  border-bottom:1px dashed rgba(159,179,255,.25);
+}
+.leaderboard li span{color:var(--muted)}
+.footer{opacity:.6; text-align:center; font-size:12px; margin-top:10px}
+
+.install{display:none; position:fixed; right:16px; bottom:16px; z-index:10}
+.theme-toggle{float:right}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <h1>Brainy 🧠</h1>
+  <p class="sub">Neon themes • Timed mode • Local leaderboard</p>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="row">
+      <div class="btn small secondary" onclick="toggleTheme()">🎨 Theme</div>
+      <div class="btn small" onclick="resetLeaderboard()">🗑️ Reset Leaderboard</div>
+      <button id="installBtn" class="btn small install">📲 Install App</button>
+    </div>
+  </div>
+
+  <!-- Setup -->
+  <div class="card" id="setup">
+    <h3>Choose Category</h3>
+    <div class="grid">
+      <div class="btn" onclick="start('sports')">🏏 Sports</div>
+      <div class="btn" onclick="start('science')">🔬 Science</div>
+      <div class="btn" onclick="start('india')">🇮🇳 India GK</div>
+    </div>
+    <div class="space"></div>
+    <h3>Mode</h3>
+    <div class="grid">
+      <div class="btn secondary" onclick="setMode('practice')">Practice</div>
+      <div class="btn secondary" onclick="setMode('timed')">Timed (60s)</div>
+    </div>
+  </div>
+
+  <!-- Quiz -->
+  <div class="card" id="quiz" style="display:none">
+    <div class="topbar">
+      <div class="badge" id="meta">0/0</div>
+      <div class="timer" id="timer"></div>
+    </div>
+    <div class="space"></div>
+    <div class="question" id="q"></div>
+    <div class="options" id="opts"></div>
+    <div class="space"></div>
+    <div class="row">
+      <div class="btn small" onclick="next()">Next ➜</div>
+      <div class="btn small secondary" onclick="end()">End</div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="result" style="display:none">
+    <h3>Result</h3>
+    <p id="scoreText"></p>
+    <div class="row">
+      <input id="name" placeholder="Your name" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(159,179,255,.3);background:#0b1025;color:#fff">
+      <div class="btn small" onclick="saveScore()">Save</div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="card">
+    <h3>🏆 Leaderboard</h3>
+    <ul class="leaderboard" id="board"></ul>
+  </div>
+
+  <p class="footer">Offline-ready • No backend • Installable</p>
+</div>
+
+<script>
+const DB = {
+  sports: [
+    {q:"How many players are there in a football team?", o:["9","10","11","12"], a:2},
+    {q:"Which country won the 2011 Cricket World Cup?", o:["India","Sri Lanka","Australia","England"], a:0},
+    {q:"Which sport uses a shuttlecock?", o:["Tennis","Badminton","Squash","Table Tennis"], a:1},
+    {q:"How many rings are in the Olympic symbol?", o:["4","5","6","7"], a:1},
+    {q:"Who is known as the Flying Sikh?", o:["Milkha Singh","Usain Bolt","Neeraj Chopra","P.T. Usha"], a:0},
+    {q:"Which country invented football?", o:["Brazil","England","Spain","Germany"], a:1},
+    {q:"In which sport is the term ‘Love’ used?", o:["Cricket","Football","Tennis","Hockey"], a:2},
+    {q:"How many players in a cricket team?", o:["9","10","11","12"], a:2},
+    {q:"Which sport is associated with Wimbledon?", o:["Tennis","Cricket","Hockey","Golf"], a:0},
+    {q:"Who won gold in javelin for India in Olympics 2021?", o:["Neeraj Chopra","Bajrang Punia","Abhinav Bindra","Vijender Singh"], a:0},
+
+    {q:"Which sport uses a bat and ball?", o:["Cricket","Hockey","Football","Tennis"], a:0},
+    {q:"How many minutes in a football match?", o:["60","70","80","90"], a:3},
+    {q:"Which sport has a penalty shootout?", o:["Cricket","Football","Basketball","Tennis"], a:1},
+    {q:"Which country hosts the IPL?", o:["India","Australia","UK","South Africa"], a:0},
+    {q:"Which sport uses the term ‘Checkmate’?", o:["Chess","Badminton","Hockey","Boxing"], a:0},
+    {q:"Which sport is Michael Jordan famous for?", o:["Baseball","Basketball","Tennis","Golf"], a:1},
+    {q:"Which sport has a ‘ring’?", o:["Wrestling","Cricket","Football","Hockey"], a:0},
+    {q:"How many overs in T20 cricket per team?", o:["10","15","20","25"], a:2},
+    {q:"Which sport uses the term ‘Ace’?", o:["Tennis","Cricket","Hockey","Golf"], a:0},
+    {q:"Which Indian sportsperson won Olympic gold in shooting?", o:["Abhinav Bindra","Gagan Narang","Vijay Kumar","Rajyavardhan Rathore"], a:0},
+  ],
+
+  science: [
+    {q:"What is H2O?", o:["Oxygen","Hydrogen","Water","Helium"], a:2},
+    {q:"Which planet is called the Red Planet?", o:["Earth","Mars","Jupiter","Venus"], a:1},
+    {q:"What gas do plants absorb?", o:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], a:2},
+    {q:"What is the center of an atom called?", o:["Electron","Proton","Neutron","Nucleus"], a:3},
+    {q:"Which organ pumps blood?", o:["Lungs","Brain","Heart","Kidney"], a:2},
+    {q:"Which vitamin is given by sunlight?", o:["Vitamin A","Vitamin B","Vitamin C","Vitamin D"], a:3},
+    {q:"What is the boiling point of water?", o:["90°C","100°C","80°C","120°C"], a:1},
+    {q:"Which planet is closest to the Sun?", o:["Venus","Earth","Mercury","Mars"], a:2},
+    {q:"Which gas do humans need to breathe?", o:["Oxygen","Nitrogen","Carbon","Hydrogen"], a:0},
+    {q:"What is the largest organ in human body?", o:["Heart","Skin","Liver","Lungs"], a:1},
+
+    {q:"Which part of plant makes food?", o:["Root","Stem","Leaf","Flower"], a:2},
+    {q:"Which metal is liquid at room temperature?", o:["Gold","Iron","Mercury","Silver"], a:2},
+    {q:"What force pulls objects to Earth?", o:["Magnetism","Gravity","Friction","Energy"], a:1},
+    {q:"Which planet has rings?", o:["Mars","Saturn","Earth","Mercury"], a:1},
+    {q:"What is the hardest natural substance?", o:["Iron","Gold","Diamond","Steel"], a:2},
+    {q:"Which organ helps in breathing?", o:["Heart","Kidney","Lungs","Stomach"], a:2},
+    {q:"Which gas is used in balloons?", o:["Oxygen","Hydrogen","Helium","Nitrogen"], a:2},
+    {q:"What do bees collect from flowers?", o:["Milk","Pollen","Water","Seeds"], a:1},
+    {q:"Which organ helps in seeing?", o:["Nose","Eye","Ear","Skin"], a:1},
+    {q:"Which planet is known as Earth’s twin?", o:["Mars","Venus","Mercury","Jupiter"], a:1},
+  ],
+
+  india: [
+    {q:"Capital of India?", o:["Mumbai","Delhi","Kolkata","Chennai"], a:1},
+    {q:"Who is the Father of the Nation?", o:["Bhagat Singh","Mahatma Gandhi","Nehru","Subhash Bose"], a:1},
+    {q:"National animal of India?", o:["Lion","Elephant","Tiger","Leopard"], a:2},
+    {q:"National bird of India?", o:["Sparrow","Peacock","Parrot","Crow"], a:1},
+    {q:"National flower of India?", o:["Rose","Lotus","Lily","Sunflower"], a:1},
+    {q:"Who was the first PM of India?", o:["Nehru","Modi","Patel","Gandhi"], a:0},
+    {q:"Which is the national fruit?", o:["Apple","Banana","Mango","Orange"], a:2},
+    {q:"Which is the largest state by area?", o:["UP","MP","Rajasthan","Maharashtra"], a:2},
+    {q:"Currency of India?", o:["Dollar","Euro","Rupee","Yen"], a:2},
+    {q:"Taj Mahal is in?", o:["Delhi","Agra","Jaipur","Mumbai"], a:1},
+
+    {q:"Who wrote the national anthem?", o:["Tagore","Gandhi","Nehru","Patel"], a:0},
+    {q:"Which river is the longest in India?", o:["Yamuna","Ganga","Godavari","Narmada"], a:1},
+    {q:"Which city is known as Pink City?", o:["Jaipur","Udaipur","Jodhpur","Ajmer"], a:0},
+    {q:"Which is the national sport (commonly said)?", o:["Cricket","Hockey","Kabaddi","Football"], a:1},
+    {q:"Who is known as Iron Man of India?", o:["Nehru","Patel","Gandhi","Bose"], a:1},
+    {q:"Which is the smallest state?", o:["Goa","Sikkim","Tripura","Manipur"], a:0},
+    {q:"Who is the current PM of India?", o:["Rahul Gandhi","Narendra Modi","Kejriwal","Yogi"], a:1},
+    {q:"Which festival is festival of lights?", o:["Holi","Diwali","Eid","Baisakhi"], a:1},
+    {q:"Which is the national tree?", o:["Neem","Banyan","Peepal","Mango"], a:1},
+    {q:"Which state is called God’s Own Country?", o:["Kerala","Goa","Punjab","Assam"], a:0},
+  ]
+};
+// (Add more questions to reach 100 easily by extending arrays)
+
+let mode="practice", cat="", i=0, score=0, time=60, tInt=null, theme=0;
+
+function setMode(m){ mode=m; alert("Mode: "+m); }
+
+function start(c){
+  cat=c; i=0; score=0; time=60;
+  document.getElementById("setup").style.display="none";
+  document.getElementById("quiz").style.display="block";
+  if(mode==="timed"){ document.getElementById("timer").textContent="⏱️ 60s"; startTimer(); }
+  show();
+}
+
+function show(){
+  const d=DB[cat][i];
+  document.getElementById("meta").textContent=`${i+1}/${DB[cat].length}`;
+  document.getElementById("q").textContent=d.q;
+  const o=document.getElementById("opts"); o.innerHTML="";
+  d.o.forEach((x,idx)=>{
+    const div=document.createElement("div");
+    div.className="option";
+    div.textContent=x;
+    div.onclick=()=>pick(div,idx,d.a);
+    o.appendChild(div);
+  });
+}
+
+function pick(el,idx,ans){
+  document.querySelectorAll(".option").forEach(o=>o.onclick=null);
+  if(idx===ans){ el.classList.add("correct"); score++; }
+  else{ el.classList.add("wrong"); document.querySelectorAll(".option")[ans].classList.add("correct"); }
+}
+
+function next(){
+  if(i<DB[cat].length-1){ i++; show(); }
+  else end();
+}
+
+function startTimer(){
+  tInt=setInterval(()=>{
+    time--; document.getElementById("timer").textContent="⏱️ "+time+"s";
+    if(time<=0) end();
+  },1000);
+}
+
+function end(){
+  clearInterval(tInt);
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("result").style.display="block";
+  document.getElementById("scoreText").textContent=`You scored ${score}/${DB[cat].length}`;
+}
+
+function saveScore(){
+  const name=document.getElementById("name").value||"Player";
+  const arr=JSON.parse(localStorage.getItem("board")||"[]");
+  arr.push({name,score});
+  arr.sort((a,b)=>b.score-a.score);
+  localStorage.setItem("board",JSON.stringify(arr.slice(0,10)));
+  loadBoard();
+  document.getElementById("result").style.display="none";
+  document.getElementById("setup").style.display="block";
+}
+
+function loadBoard(){
+  const ul=document.getElementById("board"); ul.innerHTML="";
+  const arr=JSON.parse(localStorage.getItem("board")||"[]");
+  arr.forEach((x,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<b>#${i+1} ${x.name}</b> <span>${x.score}</span>`;
+    ul.appendChild(li);
+  });
+}
+loadBoard();
+
+function resetLeaderboard(){ localStorage.removeItem("board"); loadBoard(); }
+
+function toggleTheme(){
+  theme = (theme+1)%2;
+  document.documentElement.style.setProperty('--neon', theme? '#ff5edf':'#00f0ff');
+  document.documentElement.style.setProperty('--pink', theme? '#00f0ff':'#ff5edf');
+}
+
+// PWA
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+let deferredPrompt, btn=document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", e=>{
+  e.preventDefault(); deferredPrompt=e; btn.style.display="block";
+});
+btn.addEventListener("click", async ()=>{
+  deferredPrompt.prompt(); await deferredPrompt.userChoice; btn.style.display="none";
+});
+</script>
+</body>
+</html>
